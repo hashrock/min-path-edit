@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>bezier</title>
+    <style>
+      path {
+        stroke: black;
+        fill: none;
+      }
+
+      circle {
+        fill: white;
+        stroke: lightseagreen;
+      }
+
+      line {
+        stroke: lightseagreen;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app">
+      <svg ref="canv" viewBox="0 0 400 400" height="400" width="400">
+        <g v-for="i in path">
+          <line
+            v-if="i.out"
+            :x1="i.x"
+            :y1="i.y"
+            :x2="i.out.x"
+            :y2="i.out.y"
+          ></line>
+          <circle
+            @pointerdown="onPointerDown($event, i.out)"
+            @pointermove="onPointerMove"
+            @pointerup="onPointerUp"
+            v-if="i.out"
+            :cx="i.out.x"
+            :cy="i.out.y"
+            r="7"
+          ></circle>
+          <line
+            v-if="i.in"
+            :x1="i.x"
+            :y1="i.y"
+            :x2="i.in.x"
+            :y2="i.in.y"
+          ></line>
+          <circle
+            @pointerdown="onPointerDown($event, i.in)"
+            @pointermove="onPointerMove"
+            @pointerup="onPointerUp"
+            v-if="i.in"
+            :cx="i.in.x"
+            :cy="i.in.y"
+            r="7"
+          ></circle>
+        </g>
+        <path :d="render"></path>
+        <circle
+          v-for="i in path"
+          :cx="i.x"
+          :cy="i.y"
+          r="10"
+          @pointerdown="onPointerDown($event, i)"
+          @pointermove="onPointerMove"
+          @pointerup="onPointerUp"
+        ></circle>
+      </svg>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="index.js"></script>
+  </body>
+</html>
