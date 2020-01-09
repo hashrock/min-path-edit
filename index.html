@@ -21,8 +21,16 @@
 
   <body>
     <div id="app">
-      <svg ref="canv" viewBox="0 0 400 400" height="400" width="400">
-        <g v-for="i in path">
+      <svg
+        ref="canv"
+        viewBox="0 0 400 400"
+        height="400"
+        width="400"
+        @keydown.z="anchorChange = true"
+        @keyup.z="anchorChange = false"
+        tabindex="0"
+      >
+        <g v-for="(i, idx) in path">
           <line
             v-if="i.out"
             :x1="i.x"
@@ -31,7 +39,7 @@
             :y2="i.out.y"
           ></line>
           <circle
-            @pointerdown="onPointerDown($event, i.out)"
+            @pointerdown="onPointerDown($event, i.out, i, 'out' )"
             @pointermove="onPointerMove"
             @pointerup="onPointerUp"
             v-if="i.out"
@@ -47,7 +55,7 @@
             :y2="i.in.y"
           ></line>
           <circle
-            @pointerdown="onPointerDown($event, i.in)"
+            @pointerdown="onPointerDown($event, i.in, i, 'in')"
             @pointermove="onPointerMove"
             @pointerup="onPointerUp"
             v-if="i.in"
@@ -62,7 +70,7 @@
           :cx="i.x"
           :cy="i.y"
           r="10"
-          @pointerdown="onPointerDown($event, i)"
+          @pointerdown="onPointerDown($event, i, i)"
           @pointermove="onPointerMove"
           @pointerup="onPointerUp"
         ></circle>

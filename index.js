@@ -36,7 +36,8 @@ new Vue({
         {
           x: 100,
           y: 300,
-          in: { x: 100, y: 220, mirror: true },
+          mirror: true,
+          in: { x: 100, y: 220 },
           out: { x: 210, y: 130 }
         },
         {
@@ -46,14 +47,20 @@ new Vue({
         }
       ],
       selection: null,
-      offset: null
+      selectedSegment: null,
+      selectionMirror: null,
+      offset: null,
+      anchorChange: false
     };
   },
   methods: {
     onPointerUp(e) {
       this.offset = null;
+      if (this.anchorChange) {
+        this.selectedSegment.mirror = !this.selectedSegment.mirror;
+      }
     },
-    onPointerDown(e, item) {
+    onPointerDown(e, item, root, type) {
       e.stopPropagation();
       const rect = e.target;
       this.offset = screenToSvg(
@@ -63,6 +70,18 @@ new Vue({
       );
       rect.setPointerCapture(e.pointerId);
       this.selection = item;
+      this.selectedSegment = root;
+
+      switch (type) {
+        case "in":
+          this.selectionMirror = root.out;
+          break;
+        case "out":
+          this.selectionMirror = root.in;
+          break;
+        default:
+          this.selectionMirror = null;
+      }
     },
     onPointerMove(e) {
       if (this.offset) {
@@ -83,6 +102,21 @@ new Vue({
           this.selection.out.y += p.y - this.offset.y;
         }
 
+        if (this.selectedSegment != this.selection) {
+          if (!this.anchorChange && this.selectedSegment.mirror) {
+            this.selectionMirror.x =
+              this.selectedSegment.x * 2 - this.selection.x;
+            this.selectionMirror.y =
+              this.selectedSegment.y * 2 - this.selection.y;
+          }
+          if (this.anchorChange && !this.selectedSegment.mirror) {
+            this.selectionMirror.x =
+              this.selectedSegment.x * 2 - this.selection.x;
+            this.selectionMirror.y =
+              this.selectedSegment.y * 2 - this.selection.y;
+          }
+        }
+
         this.offset = { x: p.x, y: p.y };
       }
     }
@@ -90,6 +124,15 @@ new Vue({
   computed: {
     render() {
       return toSvg(this.path);
+    },
+    selectionIndex() {
+      return this.path.indexOf(this.selectedSegment);
+    },
+    prev() {
+      return this.path[(this.selectionIndex - 1) % this.path.length];
+    },
+    next() {
+      return this.path[(this.selectionIndex + 1) % this.path.length];
     }
   }
 });
