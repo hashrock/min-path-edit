@@ -9,7 +9,7 @@
       }
 
       circle {
-        fill: white;
+        fill: rgba(255, 255, 255, 0.233);
         stroke: lightseagreen;
       }
 
@@ -28,6 +28,9 @@
         width="400"
         @keydown.z="anchorChange = true"
         @keyup.z="anchorChange = false"
+        @pointerdown="onCreatePathDown"
+        @pointermove="onPointerMove"
+        @pointerup="onPointerUp"
         tabindex="0"
       >
         <g v-for="(i, idx) in path">

@@ -83,6 +83,34 @@ new Vue({
           this.selectionMirror = null;
       }
     },
+    onCreatePathDown(e) {
+      this.offset = { x: e.clientX, y: e.clientY };
+      let p = screenToSvg(
+        { x: e.clientX, y: e.clientY },
+        this.$refs.canv,
+        this.$refs.canv
+      );
+      const item = {
+        x: p.x,
+        y: p.y,
+        in: {
+          x: p.x,
+          y: p.y
+        },
+        out: {
+          x: p.x,
+          y: p.y
+        },
+        mirror: true
+      };
+      this.path.push(item);
+      this.selection = item.out;
+      this.selectionMirror = item.in;
+
+      this.selectedSegment = item;
+    },
+    onCreatePathMove(e) {},
+    onCreatePathUp(e) {},
     onPointerMove(e) {
       if (this.offset) {
         let p = screenToSvg(
