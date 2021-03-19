@@ -32,11 +32,11 @@ new Vue({
       ],
       selection: null,
       selectedSegment: null,
-      selectionMirror: null,
+      selectedType: "",
       offset: null,
       anchorChange: false,
       pathClosed: false,
-      penMode: true
+      penMode: true,
     };
   },
   methods: {
@@ -57,27 +57,19 @@ new Vue({
       rect.setPointerCapture(e.pointerId);
       this.selection = item;
       this.selectedSegment = root;
+      this.selectedType = type
 
       if (item === this.path[0] && this.penMode) {
         this.pathClosed = true
         const i = this.createPoint(this.path[0])
         this.selection = this.path[0].out
-        this.selectionMirror = i.in
+        this.selectedType = "out"
         this.selectedSegment = i
         this.penMode = false
         return
       }
 
-      switch (type) {
-        case "in":
-          this.selectionMirror = root.out;
-          break;
-        case "out":
-          this.selectionMirror = root.in;
-          break;
-        default:
-          this.selectionMirror = null;
-      }
+
     },
     createPoint(p) {
       const item = {
@@ -116,7 +108,7 @@ new Vue({
       );
       const item = this.createPoint(p)
       this.selection = item.out;
-      this.selectionMirror = item.in;
+      this.selectedType = "out"
       this.selectedSegment = item;
     },
     onCreatePathMove(e) { },
@@ -184,6 +176,25 @@ new Vue({
     },
     next() {
       return this.path[(this.selectionIndex + 1) % this.path.length];
+    },
+    selectionMirror() {
+      if (this.pathClosed) {
+        const start = this.path[0]
+        const last = this.path[this.path.length - 1]
+        if (this.selectedSegment === start && this.selectedType === "out") {
+          return last.in
+        }
+        if (this.selectedSegment === last && this.selectedType === "in") {
+          return start.out
+        }
+      }
+      switch (this.selectedType) {
+        case "in":
+          return this.selectedSegment.out;
+        case "out":
+          return this.selectedSegment.in;
+      }
+      return null
     }
   }
 });
