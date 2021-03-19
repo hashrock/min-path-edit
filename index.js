@@ -58,12 +58,12 @@ new Vue({
       this.selection = item;
       this.selectedSegment = root;
 
-      if(item === this.path[0] && this.penMode){
+      if (item === this.path[0] && this.penMode) {
+        this.pathClosed = true
         const i = this.createPoint(this.path[0])
         this.selection = this.path[0].out
         this.selectionMirror = i.in
         this.selectedSegment = i
-        this.pathClosed = true
         this.penMode = false
         return
       }
@@ -79,7 +79,7 @@ new Vue({
           this.selectionMirror = null;
       }
     },
-    createPoint(p){
+    createPoint(p) {
       const item = {
         x: p.x,
         y: p.y,
@@ -93,14 +93,21 @@ new Vue({
         },
         mirror: true
       };
+      if (this.path.length === 0) {
+        item.in = undefined
+      }
+      if (this.pathClosed) {
+        item.out = undefined
+      }
+
       this.path.push(item);
       return item
     },
     onCreatePathDown(e) {
-      if(!this.penMode){
+      if (!this.penMode) {
         return
       }
-      
+
       this.offset = { x: e.clientX, y: e.clientY };
       let p = screenToSvg(
         { x: e.clientX, y: e.clientY },
@@ -124,14 +131,14 @@ new Vue({
         this.selection.x += p.x - this.offset.x;
         this.selection.y += p.y - this.offset.y;
 
-        if(this.pathClosed){
+        if (this.pathClosed) {
           const start = this.path[0]
-          const last = this.path[this.path.length-1]
-          if(this.selection === start){
+          const last = this.path[this.path.length - 1]
+          if (this.selection === start) {
             last.x = this.selection.x
             last.y = this.selection.y
           }
-          if(this.selection === last){
+          if (this.selection === last) {
             start.x = this.selection.x
             start.y = this.selection.y
           }
@@ -146,7 +153,7 @@ new Vue({
           this.selection.out.y += p.y - this.offset.y;
         }
 
-        if (this.selectedSegment != this.selection) {
+        if (this.selectedSegment != this.selection && this.selectionMirror) {
           if (!this.anchorChange && this.selectedSegment.mirror) {
             this.selectionMirror.x =
               this.selectedSegment.x * 2 - this.selection.x;
