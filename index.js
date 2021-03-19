@@ -109,8 +109,8 @@ new Vue({
 
       this.selectedSegment = item;
     },
-    onCreatePathMove(e) {},
-    onCreatePathUp(e) {},
+    onCreatePathMove(e) { },
+    onCreatePathUp(e) { },
     onPointerMove(e) {
       if (this.offset) {
         let p = screenToSvg(
