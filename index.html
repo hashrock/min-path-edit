@@ -3,14 +3,22 @@
   <head>
     <title>bezier</title>
     <style>
-      path {
+      path.rendered {
         stroke: black;
-        fill: rgba(0, 0, 0, 0.1);
+        fill: rgba(0, 0, 0, 0.2);
+      }
+      path.preview {
+        stroke: lightseagreen;
+        fill: none;
       }
 
       circle {
         fill: rgba(255, 255, 255, 0.233);
         stroke: lightseagreen;
+      }
+      circle.selected {
+        fill: rgba(148, 255, 223, 0.377);
+        stroke: rgb(69, 173, 0);
       }
 
       line {
@@ -37,6 +45,7 @@
         @pointerup="onPointerUp"
         tabindex="0"
       >
+        <path :d="render" class="rendered"></path>
         <g v-for="(i, idx) in path">
           <line
             v-if="i.out"
@@ -53,6 +62,7 @@
             :cx="i.out.x"
             :cy="i.out.y"
             r="7"
+            :class="{'selected': selection === i.out}"
           ></circle>
           <line
             v-if="i.in"
@@ -69,9 +79,10 @@
             :cx="i.in.x"
             :cy="i.in.y"
             r="7"
+            :class="{'selected': selection === i.in}"
           ></circle>
         </g>
-        <path :d="render"></path>
+        <path :d="render" class="preview"></path>
         <circle
           v-for="i in path"
           :cx="i.x"
@@ -80,6 +91,7 @@
           @pointerdown="onPointerDown($event, i, i)"
           @pointermove="onPointerMove"
           @pointerup="onPointerUp"
+          :class="{'selected': selection === i}"
         ></circle>
       </svg>
 
