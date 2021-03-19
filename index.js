@@ -1,4 +1,4 @@
-function toSvg(path) {
+function toSvg(path, closed) {
   let result = [];
   for (let i = 0; i < path.length - 1; i++) {
     const seg = path[i];
@@ -14,7 +14,7 @@ function toSvg(path) {
       ].join(" ")
     );
   }
-  return result.join(" ");
+  return result.join(" ") + (closed ? "Z" : "");
 }
 function screenToSvg(point, el, svg) {
   const pt = svg.createSVGPoint();
@@ -28,29 +28,15 @@ new Vue({
   data() {
     return {
       path: [
-        {
-          x: 20,
-          y: 20,
-          out: { x: 100, y: 020 }
-        },
-        {
-          x: 100,
-          y: 300,
-          mirror: true,
-          in: { x: 100, y: 220 },
-          out: { x: 210, y: 130 }
-        },
-        {
-          x: 300,
-          y: 300,
-          in: { x: 200, y: 120 }
-        }
+
       ],
       selection: null,
       selectedSegment: null,
       selectionMirror: null,
       offset: null,
-      anchorChange: false
+      anchorChange: false,
+      pathClosed: false,
+      penMode: true
     };
   },
   methods: {
@@ -72,6 +58,16 @@ new Vue({
       this.selection = item;
       this.selectedSegment = root;
 
+      if(item === this.path[0] && this.penMode){
+        const i = this.createPoint(this.path[0])
+        this.selection = this.path[0].out
+        this.selectionMirror = i.in
+        this.selectedSegment = i
+        this.pathClosed = true
+        this.penMode = false
+        return
+      }
+
       switch (type) {
         case "in":
           this.selectionMirror = root.out;
@@ -83,13 +79,7 @@ new Vue({
           this.selectionMirror = null;
       }
     },
-    onCreatePathDown(e) {
-      this.offset = { x: e.clientX, y: e.clientY };
-      let p = screenToSvg(
-        { x: e.clientX, y: e.clientY },
-        this.$refs.canv,
-        this.$refs.canv
-      );
+    createPoint(p){
       const item = {
         x: p.x,
         y: p.y,
@@ -104,9 +94,22 @@ new Vue({
         mirror: true
       };
       this.path.push(item);
+      return item
+    },
+    onCreatePathDown(e) {
+      if(!this.penMode){
+        return
+      }
+      
+      this.offset = { x: e.clientX, y: e.clientY };
+      let p = screenToSvg(
+        { x: e.clientX, y: e.clientY },
+        this.$refs.canv,
+        this.$refs.canv
+      );
+      const item = this.createPoint(p)
       this.selection = item.out;
       this.selectionMirror = item.in;
-
       this.selectedSegment = item;
     },
     onCreatePathMove(e) { },
@@ -120,6 +123,19 @@ new Vue({
         );
         this.selection.x += p.x - this.offset.x;
         this.selection.y += p.y - this.offset.y;
+
+        if(this.pathClosed){
+          const start = this.path[0]
+          const last = this.path[this.path.length-1]
+          if(this.selection === start){
+            last.x = this.selection.x
+            last.y = this.selection.y
+          }
+          if(this.selection === last){
+            start.x = this.selection.x
+            start.y = this.selection.y
+          }
+        }
 
         if (this.selection.in) {
           this.selection.in.x += p.x - this.offset.x;
@@ -151,7 +167,7 @@ new Vue({
   },
   computed: {
     render() {
-      return toSvg(this.path);
+      return toSvg(this.path, this.pathClosed);
     },
     selectionIndex() {
       return this.path.indexOf(this.selectedSegment);

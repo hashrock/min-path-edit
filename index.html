@@ -5,7 +5,7 @@
     <style>
       path {
         stroke: black;
-        fill: none;
+        fill: rgba(0, 0, 0, 0.1);
       }
 
       circle {
@@ -15,6 +15,10 @@
 
       line {
         stroke: lightseagreen;
+      }
+      textarea{
+        width: 400px;
+        height: 200px;
       }
     </style>
   </head>
@@ -78,7 +82,12 @@
           @pointerup="onPointerUp"
         ></circle>
       </svg>
+
+      <div>
+        <textarea v-model="render"></textarea>
+      </div>
     </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script src="index.js"></script>
