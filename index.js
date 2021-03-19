@@ -68,8 +68,6 @@ new Vue({
         this.penMode = false
         return
       }
-
-
     },
     createPoint(p) {
       const item = {
@@ -120,31 +118,10 @@ new Vue({
           this.$refs.canv,
           this.$refs.canv
         );
-        this.selection.x += p.x - this.offset.x;
-        this.selection.y += p.y - this.offset.y;
-
-        if (this.pathClosed) {
-          const start = this.path[0]
-          const last = this.path[this.path.length - 1]
-          if (this.selection === start) {
-            last.x = this.selection.x
-            last.y = this.selection.y
-          }
-          if (this.selection === last) {
-            start.x = this.selection.x
-            start.y = this.selection.y
-          }
+        for(let i of this.movingGroup){
+          i.x += p.x - this.offset.x;
+          i.y += p.y - this.offset.y;
         }
-
-        if (this.selection.in) {
-          this.selection.in.x += p.x - this.offset.x;
-          this.selection.in.y += p.y - this.offset.y;
-        }
-        if (this.selection.out) {
-          this.selection.out.x += p.x - this.offset.x;
-          this.selection.out.y += p.y - this.offset.y;
-        }
-
         if (this.selectedSegment != this.selection && this.selectionMirror) {
           if (!this.anchorChange && this.selectedSegment.mirror) {
             this.selectionMirror.x =
@@ -195,6 +172,29 @@ new Vue({
           return this.selectedSegment.in;
       }
       return null
+    },
+    movingGroup(){
+      const group = []
+      group.push(this.selection)
+      if (this.selection.in) {
+        group.push(this.selection.in)
+      }
+      if (this.selection.out) {
+        group.push(this.selection.out)
+      }
+      if (this.pathClosed) {
+        const start = this.path[0]
+        const last = this.path[this.path.length - 1]
+        if (this.selection === start) {
+          group.push(last)
+          group.push(last.in)
+        }
+        if (this.selection === last) {
+          group.push(start)
+          group.push(start.out)
+        }
+      }
+      return group
     }
   }
 });
