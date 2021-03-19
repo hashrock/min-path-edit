@@ -23,6 +23,8 @@ function screenToSvg(point, el, svg) {
   return pt.matrixTransform(el.getScreenCTM().inverse());
 }
 
+let keydownHandler, keyupHandler
+
 new Vue({
   el: "#app",
   data() {
@@ -118,7 +120,7 @@ new Vue({
           this.$refs.canv,
           this.$refs.canv
         );
-        for(let i of this.movingGroup){
+        for (let i of this.movingGroup) {
           i.x += p.x - this.offset.x;
           i.y += p.y - this.offset.y;
         }
@@ -173,7 +175,7 @@ new Vue({
       }
       return null
     },
-    movingGroup(){
+    movingGroup() {
       const group = []
       group.push(this.selection)
       if (this.selection.in) {
@@ -196,5 +198,21 @@ new Vue({
       }
       return group
     }
+  },
+  mounted() {
+    keydownHandler = window.addEventListener("keydown", (ev) => {
+      if (ev.key === "Control") {
+        this.anchorChange = true
+      }
+    })
+    keyupHandler = window.addEventListener("keyup", (ev) => {
+      if (ev.key === "Control") {
+        this.anchorChange = false
+      }
+    })
+  },
+  beforeDestroy() {
+    window.removeEventListener("keydown", keydownHandler)
+    window.removeEventListener("keydown", keyupHandler)
   }
 });
