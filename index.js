@@ -1,8 +1,11 @@
-function toSvg(path, closed) {
+function toSvg(path) {
+  if (!path) {
+    return []
+  }
   let result = [];
-  for (let i = 0; i < path.length - 1; i++) {
-    const seg = path[i];
-    const next = path[i + 1];
+  for (let i = 0; i < path.points.length - 1; i++) {
+    const seg = path.points[i];
+    const next = path.points[i + 1];
     if (i === 0) {
       result.push(`M ${seg.x} ${seg.y}`);
     }
@@ -14,7 +17,7 @@ function toSvg(path, closed) {
       ].join(" ")
     );
   }
-  return result.join(" ") + (closed ? "Z" : "");
+  return result.join(" ") + (path.closed ? " Z" : "");
 }
 function screenToSvg(point, el, svg) {
   const pt = svg.createSVGPoint();
@@ -29,16 +32,16 @@ new Vue({
   el: "#app",
   data() {
     return {
-      path: [
-
+      paths: [
       ],
+      selectedPathIndex: 0,
       selection: null,
       selectedSegment: null,
       selectedType: "",
       offset: null,
       anchorChange: false,
       pathClosed: false,
-      penMode: true,
+      penMode: false,
     };
   },
   methods: {
@@ -61,10 +64,10 @@ new Vue({
       this.selectedSegment = root;
       this.selectedType = type
 
-      if (item === this.path[0] && this.penMode) {
-        this.pathClosed = true
-        const i = this.createPoint(this.path[0])
-        this.selection = this.path[0].out
+      if (item === this.path.points[0] && this.penMode) {
+        this.path.closed = true
+        const i = this.createPoint(this.path.points[0])
+        this.selection = this.path.points[0].out
         this.selectedType = "out"
         this.selectedSegment = i
         this.penMode = false
@@ -85,17 +88,26 @@ new Vue({
         },
         mirror: true
       };
-      if (this.path.length === 0) {
+      if (this.path.points.length === 0) {
         item.in = undefined
       }
-      if (this.pathClosed) {
+      if (this.path.closed) {
         item.out = undefined
       }
 
-      this.path.push(item);
+      this.path.points.push(item);
       return item
     },
+    addPath() {
+      this.paths.push({
+        points: [],
+        closed: false
+      })
+      this.selectedPathIndex = this.paths.length - 1
+      this.penMode = true
+    },
     onCreatePathDown(e) {
+      // 新規作成
       if (!this.penMode) {
         return
       }
@@ -144,22 +156,28 @@ new Vue({
     }
   },
   computed: {
+    path() {
+      return this.paths[this.selectedPathIndex]
+    },
     render() {
-      return toSvg(this.path, this.pathClosed);
+      return toSvg(this.path);
+    },
+    renders() {
+      return this.paths.map(toSvg)
     },
     selectionIndex() {
-      return this.path.indexOf(this.selectedSegment);
+      return this.path.points.indexOf(this.selectedSegment);
     },
     prev() {
-      return this.path[(this.selectionIndex - 1) % this.path.length];
+      return this.path.points[(this.selectionIndex - 1) % this.path.points.length];
     },
     next() {
-      return this.path[(this.selectionIndex + 1) % this.path.length];
+      return this.path.points[(this.selectionIndex + 1) % this.path.points.length];
     },
     selectionMirror() {
       if (this.pathClosed) {
-        const start = this.path[0]
-        const last = this.path[this.path.length - 1]
+        const start = this.path.points[0]
+        const last = this.path.points[this.path.points.length - 1]
         if (this.selectedSegment === start && this.selectedType === "out") {
           return last.in
         }
@@ -185,8 +203,8 @@ new Vue({
         group.push(this.selection.out)
       }
       if (this.pathClosed) {
-        const start = this.path[0]
-        const last = this.path[this.path.length - 1]
+        const start = this.path.points[0]
+        const last = this.path.points[this.path.length - 1]
         if (this.selection === start) {
           group.push(last)
           group.push(last.in)

@@ -28,6 +28,12 @@
         width: 400px;
         height: 200px;
       }
+      ul{
+        padding: 0;
+      }
+      li{
+        list-style: none;
+      }
     </style>
   </head>
 
@@ -45,57 +51,65 @@
         @pointerup="onPointerUp"
         tabindex="0"
       >
-        <path :d="render" class="rendered"></path>
-        <g v-for="(i, idx) in path">
-          <line
-            v-if="i.out"
-            :x1="i.x"
-            :y1="i.y"
-            :x2="i.out.x"
-            :y2="i.out.y"
-          ></line>
+        <path v-for="render in renders" :d="render" class="rendered"></path>
+        <g v-if="path">
+          <g v-for="(i, idx) in path.points">
+            <line
+              v-if="i.out"
+              :x1="i.x"
+              :y1="i.y"
+              :x2="i.out.x"
+              :y2="i.out.y"
+            ></line>
+            <circle
+              @pointerdown="onPointerDown($event, i.out, i, 'out' )"
+              @pointermove="onPointerMove"
+              @pointerup="onPointerUp"
+              v-if="i.out"
+              :cx="i.out.x"
+              :cy="i.out.y"
+              r="7"
+              :class="{'selected': selection === i.out}"
+            ></circle>
+            <line
+              v-if="i.in"
+              :x1="i.x"
+              :y1="i.y"
+              :x2="i.in.x"
+              :y2="i.in.y"
+            ></line>
+            <circle
+              @pointerdown="onPointerDown($event, i.in, i, 'in')"
+              @pointermove="onPointerMove"
+              @pointerup="onPointerUp"
+              v-if="i.in"
+              :cx="i.in.x"
+              :cy="i.in.y"
+              r="7"
+              :class="{'selected': selection === i.in}"
+            ></circle>
+          </g>
+          <path :d="render" class="preview"></path>
           <circle
-            @pointerdown="onPointerDown($event, i.out, i, 'out' )"
+            v-for="i in path.points"
+            :cx="i.x"
+            :cy="i.y"
+            r="10"
+            @pointerdown="onPointerDown($event, i, i)"
             @pointermove="onPointerMove"
             @pointerup="onPointerUp"
-            v-if="i.out"
-            :cx="i.out.x"
-            :cy="i.out.y"
-            r="7"
-            :class="{'selected': selection === i.out}"
-          ></circle>
-          <line
-            v-if="i.in"
-            :x1="i.x"
-            :y1="i.y"
-            :x2="i.in.x"
-            :y2="i.in.y"
-          ></line>
-          <circle
-            @pointerdown="onPointerDown($event, i.in, i, 'in')"
-            @pointermove="onPointerMove"
-            @pointerup="onPointerUp"
-            v-if="i.in"
-            :cx="i.in.x"
-            :cy="i.in.y"
-            r="7"
-            :class="{'selected': selection === i.in}"
+            :class="{'selected': selection === i}"
           ></circle>
         </g>
-        <path :d="render" class="preview"></path>
-        <circle
-          v-for="i in path"
-          :cx="i.x"
-          :cy="i.y"
-          r="10"
-          @pointerdown="onPointerDown($event, i, i)"
-          @pointermove="onPointerMove"
-          @pointerup="onPointerUp"
-          :class="{'selected': selection === i}"
-        ></circle>
       </svg>
 
       <div>
+        <button @click="addPath">Add path</button>
+        <ul>
+          <li v-for="(p, i) in paths">
+            Path {{i}}
+          </li>
+        </ul>
         <textarea v-model="render"></textarea>
       </div>
     </div>
