@@ -175,7 +175,7 @@ new Vue({
       return this.path.points[(this.selectionIndex + 1) % this.path.points.length];
     },
     selectionMirror() {
-      if (this.pathClosed) {
+      if (this.path.closed) {
         const start = this.path.points[0]
         const last = this.path.points[this.path.points.length - 1]
         if (this.selectedSegment === start && this.selectedType === "out") {
@@ -202,9 +202,9 @@ new Vue({
       if (this.selection.out) {
         group.push(this.selection.out)
       }
-      if (this.pathClosed) {
+      if (this.path.closed) {
         const start = this.path.points[0]
-        const last = this.path.points[this.path.length - 1]
+        const last = this.path.points[this.path.points.length - 1]
         if (this.selection === start) {
           group.push(last)
           group.push(last.in)
