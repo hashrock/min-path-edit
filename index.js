@@ -153,6 +153,13 @@ new Vue({
 
         this.offset = { x: p.x, y: p.y };
       }
+    },
+    selectPath(index) {
+      if(this.penMode){
+        // 描画中に他のパスがActiveになってしまわないようblock
+        return
+      }
+      this.selectedPathIndex = index
     }
   },
   computed: {

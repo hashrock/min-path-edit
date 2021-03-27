@@ -33,6 +33,10 @@
       }
       li{
         list-style: none;
+        cursor: pointer;
+      }
+      li.selected{
+        font-weight: 800;
       }
     </style>
   </head>
@@ -51,7 +55,7 @@
         @pointerup="onPointerUp"
         tabindex="0"
       >
-        <path v-for="render in renders" :d="render" class="rendered"></path>
+        <path v-for="(render, i) in renders" :d="render" class="rendered" @click="selectPath(i)"></path>
         <g v-if="path">
           <g v-for="(i, idx) in path.points">
             <line
@@ -106,7 +110,7 @@
       <div>
         <button @click="addPath">Add path</button>
         <ul>
-          <li v-for="(p, i) in paths">
+          <li v-for="(p, i) in paths" :class="{selected: i === selectedPathIndex}" @click="selectedPathIndex = i">
             Path {{i}}
           </li>
         </ul>
