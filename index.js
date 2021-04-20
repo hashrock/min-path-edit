@@ -26,6 +26,13 @@ function screenToSvg(point, el, svg) {
   return pt.matrixTransform(el.getScreenCTM().inverse());
 }
 
+function roundPoint(pt){
+  return {
+    x: Math.round(pt.x),
+    y: Math.round(pt.y)
+  }
+}
+
 let keydownHandler, keyupHandler
 
 new Vue({
@@ -54,11 +61,11 @@ new Vue({
     onPointerDown(e, item, root, type) {
       e.stopPropagation();
       const rect = e.target;
-      this.offset = screenToSvg(
+      this.offset = roundPoint(screenToSvg(
         { x: e.clientX, y: e.clientY },
         rect,
         this.$refs.canv
-      );
+      ));
       rect.setPointerCapture(e.pointerId);
       this.selection = item;
       this.selectedSegment = root;
@@ -112,11 +119,11 @@ new Vue({
         return
       }
 
-      let p = screenToSvg(
+      let p = roundPoint(screenToSvg(
         { x: e.clientX, y: e.clientY },
         this.$refs.canv,
         this.$refs.canv
-      );
+      ));
       this.offset = { x: p.x, y: p.y };
       const item = this.createPoint(p)
       this.selection = item.out;
@@ -127,11 +134,11 @@ new Vue({
     onCreatePathUp(e) { },
     onPointerMove(e) {
       if (this.offset) {
-        let p = screenToSvg(
+        let p = roundPoint(screenToSvg(
           { x: e.clientX, y: e.clientY },
           this.$refs.canv,
           this.$refs.canv
-        );
+        ));
         for (let i of this.movingGroup) {
           i.x += p.x - this.offset.x;
           i.y += p.y - this.offset.y;

@@ -3,6 +3,9 @@
   <head>
     <title>bezier</title>
     <style>
+      #app{
+        margin: 2rem;
+      }
       path.rendered {
         stroke: black;
         fill: none;
@@ -16,12 +19,16 @@
       path{
       }
 
-      circle {
+      circle.grid{
+        fill: #aaa;
+      }
+      circle.ui {
         fill: rgba(255, 255, 255, 0.233);
         stroke: lightseagreen;
         vector-effect: non-scaling-stroke;
+        stroke-width: 2;
       }
-      circle.selected {
+      circle.ui.selected {
         fill: rgba(148, 255, 223, 0.377);
         stroke: rgb(69, 173, 0);
       }
@@ -29,6 +36,7 @@
       line {
         stroke: lightseagreen;
         vector-effect: non-scaling-stroke;
+        stroke-width: 2;
       }
       textarea{
         width: 400px;
@@ -52,8 +60,8 @@
       <svg
         ref="canv"
         viewBox="0 0 32 32"
-        height="400"
-        width="400"
+        height="600"
+        width="600"
         @keydown.z="anchorChange = true"
         @keyup.z="anchorChange = false"
         @pointerdown="onCreatePathDown"
@@ -61,6 +69,10 @@
         @pointerup="onPointerUp"
         tabindex="0"
       >
+        <g>
+          <circle class="grid" r=0.1 :cx="i % 32" :cy="Math.floor(i/32)" v-for="i in 1024" :key="i"></circle>
+        </g>
+
         <path v-for="(render, i) in renders" :d="render" class="rendered" @click="selectPath(i)"></path>
         <g v-if="path">
           <g v-for="(i, idx) in path.points">
@@ -79,6 +91,7 @@
               :cx="i.out.x"
               :cy="i.out.y"
               r="0.5"
+              class="ui"
               :class="{'selected': selection === i.out}"
             ></circle>
             <line
@@ -96,6 +109,7 @@
               :cx="i.in.x"
               :cy="i.in.y"
               r="0.5"
+              class="ui"
               :class="{'selected': selection === i.in}"
             ></circle>
           </g>
@@ -108,6 +122,7 @@
             @pointerdown="onPointerDown($event, i, i)"
             @pointermove="onPointerMove"
             @pointerup="onPointerUp"
+            class="ui"
             :class="{'selected': selection === i}"
           ></circle>
         </g>
