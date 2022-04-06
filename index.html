@@ -11,6 +11,28 @@
         stroke: lightseagreen;
         fill: none;
       }
+      .thumbs{
+        display: flex;
+        margin-bottom: 10px;
+      }
+      .thumb {
+        border: 1px solid #666;
+        display: inline-block;
+      }
+      .thumb.selected{
+        border: 1px solid rgb(191, 59, 59);
+      }
+      .thumb path{
+        stroke: black;
+        fill: rgba(0, 0, 0, 1);
+      }
+      .button-add{
+        width: 42px;
+        height: 42px;
+        border: 1px solid #666;
+        background: #eee;
+        margin: 0;
+      }
 
       circle {
         fill: rgba(255, 255, 255, 0.233);
@@ -134,12 +156,12 @@
       </svg>
 
       <div>
-        <button @click="addPath">Add path</button>
-        <ul>
-          <li v-for="(p, i) in paths" :class="{selected: i === selectedPathIndex}" @click="selectedPathIndex = i">
-            Path {{i}}
-          </li>
-        </ul>
+        <div class="thumbs">
+          <svg viewBox="0 0 400 400" width=40 height=40 v-for="(render, i) in thumbs" :d="render" class="thumb" @click="selectedPathIndex = i" :class="{selected: i === selectedPathIndex}">
+            <path :d="render"></path>
+          </svg>
+          <button class="button-add" @click="addPath">+</button>
+        </div>
         <textarea v-model="render"></textarea>
       </div>
     </div>

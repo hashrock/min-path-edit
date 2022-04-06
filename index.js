@@ -33,6 +33,10 @@ new Vue({
   data() {
     return {
       paths: [
+        {
+          points: [],
+          closed: false
+        }
       ],
       selectedPathIndex: 0,
       selection: null,
@@ -41,7 +45,7 @@ new Vue({
       offset: null,
       anchorChange: false,
       pathClosed: false,
-      penMode: false,
+      penMode: true,
     };
   },
   methods: {
@@ -168,6 +172,11 @@ new Vue({
     },
     render() {
       return toSvg(this.path);
+    },
+    thumbs() {
+      return this.paths.map(p => {
+        return toSvg(p);
+      });
     },
     renders() {
       return this.paths.map(toSvg)
