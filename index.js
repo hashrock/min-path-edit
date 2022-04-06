@@ -112,12 +112,12 @@ new Vue({
         return
       }
 
-      this.offset = { x: e.clientX, y: e.clientY };
       let p = screenToSvg(
         { x: e.clientX, y: e.clientY },
         this.$refs.canv,
         this.$refs.canv
       );
+      this.offset = { x: p.x, y: p.y };
       const item = this.createPoint(p)
       this.selection = item.out;
       this.selectedType = "out"
