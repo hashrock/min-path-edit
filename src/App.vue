@@ -7,5 +7,4 @@ import Editor from './components/Editor.vue'
 </template>
 
 <style>
-
 </style>

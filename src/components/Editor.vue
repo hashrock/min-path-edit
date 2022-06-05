@@ -296,85 +296,98 @@ export default defineComponent({
 </template>
 
 <style scoped>
-      path.rendered {
-        stroke: black;
-        fill: rgba(0, 0, 0, 0.2);
-      }
-      path.preview {
-        stroke: lightseagreen;
-        fill: none;
-      }
-      .thumbs{
-        display: flex;
-        margin-bottom: 10px;
-      }
-      .thumb {
-        border: 1px solid #666;
-        display: inline-block;
-      }
-      .thumb.selected{
-        border: 1px solid rgb(191, 59, 59);
-      }
-      .thumb path{
-        stroke: black;
-        fill: rgba(0, 0, 0, 1);
-      }
-      .button-add{
-        width: 42px;
-        height: 42px;
-        border: 1px solid #666;
-        background: #eee;
-        margin: 0;
-      }
+path.rendered {
+  stroke: black;
+  fill: rgba(0, 0, 0, 0.2);
+}
 
-      circle {
-        fill: rgba(255, 255, 255, 0.233);
-        stroke: lightseagreen;
-      }
-      circle.selected {
-        fill: rgba(148, 255, 223, 0.377);
-        stroke: rgb(69, 173, 0);
-      }
+path.preview {
+  stroke: lightseagreen;
+  fill: none;
+}
 
-      line {
-        stroke: lightseagreen;
-      }
-      textarea{
-        width: 400px;
-        height: 100px;
-        border: 1px solid #EEE;
-      }
-      ul{
-        padding: 0;
-      }
-      li{
-        list-style: none;
-        cursor: pointer;
-      }
-      li.selected{
-        font-weight: 800;
-      }
-      html, body{
-        height: 100%;
-      }
+.thumbs {
+  display: flex;
+  margin-bottom: 10px;
+}
 
-      body{
-        margin: 0;
-        background: #EEE;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-      }
+.thumb {
+  border: 1px solid #666;
+  display: inline-block;
+}
 
-      #canv{
-        background: white;
-      }
+.thumb.selected {
+  border: 1px solid rgb(191, 59, 59);
+}
 
-      #logo{
-        display: block;
-        position: absolute;
-        top: 0;
-        right: 0;
-      }
+.thumb path {
+  stroke: black;
+  fill: rgba(0, 0, 0, 1);
+}
+
+.button-add {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #666;
+  background: #eee;
+  margin: 0;
+}
+
+circle {
+  fill: rgba(255, 255, 255, 0.233);
+  stroke: lightseagreen;
+}
+
+circle.selected {
+  fill: rgba(148, 255, 223, 0.377);
+  stroke: rgb(69, 173, 0);
+}
+
+line {
+  stroke: lightseagreen;
+}
+
+textarea {
+  width: 400px;
+  height: 100px;
+  border: 1px solid #EEE;
+}
+
+ul {
+  padding: 0;
+}
+
+li {
+  list-style: none;
+  cursor: pointer;
+}
+
+li.selected {
+  font-weight: 800;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #EEE;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#canv {
+  background: white;
+}
+
+#logo {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
 </style>
