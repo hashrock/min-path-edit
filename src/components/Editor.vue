@@ -38,18 +38,18 @@ function screenToSvg(point: Point, el: SVGGraphicsElement, svg: SVGSVGElement) {
 let keydownHandler: KeyboardEvent | null = null;
 let keyupHandler: KeyboardEvent | null = null;
 
-interface Point{ 
+interface Point {
   x: number;
   y: number;
 }
 
-interface Segment extends Point{
+interface Segment extends Point {
   out: Point | null;
   in: Point | null;
   mirror: boolean | null
 }
 
-interface Path{
+interface Path {
   points: Segment[];
   closed: boolean;
 }
@@ -61,7 +61,7 @@ interface Offset {
 type UnknownObject<T extends object> = {
   [P in keyof T]: unknown;
 };
- 
+
 function isSegment(obj: unknown): obj is Segment {
   if (typeof obj !== "object") {
     return false;
@@ -252,12 +252,12 @@ export default defineComponent({
       }
       switch (this.selectedType) {
         case "in":
-          if(this.selectedSegment === null) {
+          if (this.selectedSegment === null) {
             return null
           }
           return this.selectedSegment?.out;
         case "out":
-          if(this.selectedSegment === null) {
+          if (this.selectedSegment === null) {
             return null
           }
           return this.selectedSegment?.in;
@@ -266,10 +266,10 @@ export default defineComponent({
     },
     movingGroup(): (Point | Segment)[] {
       const group = [] as (Point | Segment)[]
-      if(this.selectedSegment === null) {
+      if (this.selectedSegment === null) {
         return group
       }
-      if(this.selection){
+      if (this.selection) {
         group.push(this.selection)
       }
       if (isSegment(this.selection) && this.selection && this.selection.in) {
@@ -283,13 +283,13 @@ export default defineComponent({
         const last = this.path.points[this.path.points.length - 1]
         if (this.selection === start) {
           group.push(last)
-          if(last.in){
+          if (last.in) {
             group.push(last.in)
           }
         }
         if (this.selection === last) {
           group.push(start)
-          if(start.out){
+          if (start.out) {
             group.push(start.out)
           }
         }
@@ -421,20 +421,6 @@ li {
 
 li.selected {
   font-weight: 800;
-}
-
-html,
-body {
-  height: 100%;
-}
-
-body {
-  margin: 0;
-  background: #EEE;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
 #canv {

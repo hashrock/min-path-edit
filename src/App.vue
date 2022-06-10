@@ -7,4 +7,17 @@ import Editor from './components/Editor.vue'
 </template>
 
 <style>
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #EEE;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
 </style>
