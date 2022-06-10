@@ -1,9 +1,9 @@
-<script>
+<script lang="ts">
 import { defineComponent } from 'vue'
 
-function toSvg(path) {
+function toSvg(path: Path) {
   if (!path) {
-    return []
+    return ""
   }
   let result = [];
   for (let i = 0; i < path.points.length - 1; i++) {
@@ -22,7 +22,7 @@ function toSvg(path) {
   }
   return result.join(" ") + (path.closed ? " Z" : "");
 }
-function screenToSvg(point, el, svg) {
+function screenToSvg(point: Point, el: SVGGraphicsElement, svg: SVGSVGElement) {
   const pt = svg.createSVGPoint();
   pt.x = point.x;
   pt.y = point.y;
@@ -35,7 +35,46 @@ function screenToSvg(point, el, svg) {
   return pt;
 }
 
-let keydownHandler, keyupHandler = null;
+let keydownHandler: KeyboardEvent | null = null;
+let keyupHandler: KeyboardEvent | null = null;
+
+interface Point{ 
+  x: number;
+  y: number;
+}
+
+interface Segment extends Point{
+  out: Point | null;
+  in: Point | null;
+  mirror: boolean | null
+}
+
+interface Path{
+  points: Segment[];
+  closed: boolean;
+}
+
+interface Offset {
+  x: number;
+  y: number;
+}
+type UnknownObject<T extends object> = {
+  [P in keyof T]: unknown;
+};
+ 
+function isSegment(obj: unknown): obj is Segment {
+  if (typeof obj !== "object") {
+    return false;
+  }
+  if (obj === null) {
+    return false;
+  }
+  const { out } = obj as UnknownObject<Segment>;
+  if (typeof out !== "object") {
+    return false;
+  }
+  return true
+}
 
 export default defineComponent({
   el: "#app",
@@ -43,34 +82,34 @@ export default defineComponent({
     return {
       paths: [
         {
-          points: [],
+          points: [] as Segment[],
           closed: false
         }
-      ],
+      ] as Path[],
       selectedPathIndex: 0,
-      selection: null,
-      selectedSegment: null,
+      selection: null as Point | Segment | null,
+      selectedSegment: null as Segment | null,
       selectedType: "",
-      offset: null,
+      offset: null as Offset | null,
       anchorChange: false,
       pathClosed: false,
       penMode: true,
     };
   },
   methods: {
-    onPointerUp(e) {
+    onPointerUp(e: PointerEvent) {
       this.offset = null;
       if (this.anchorChange && this.selectedSegment) {
         this.selectedSegment.mirror = !this.selectedSegment.mirror;
       }
     },
-    onPointerDown(e, item, root, type) {
+    onPointerDown(e: PointerEvent, item: Point | null, root: Segment, type: "out" | "in" | "") {
       e.stopPropagation();
-      const rect = e.target;
+      const rect = e.currentTarget as SVGRectElement;
       this.offset = screenToSvg(
         { x: e.clientX, y: e.clientY },
         rect,
-        this.$refs.canv
+        this.$refs.canv as SVGSVGElement
       );
       rect.setPointerCapture(e.pointerId);
       this.selection = item;
@@ -87,8 +126,8 @@ export default defineComponent({
         return
       }
     },
-    createPoint(p) {
-      const item = {
+    createPoint(p: Point) {
+      const item: Segment = {
         x: p.x,
         y: p.y,
         in: {
@@ -102,10 +141,10 @@ export default defineComponent({
         mirror: true
       };
       if (this.path.points.length === 0) {
-        item.in = undefined
+        item.in = null
       }
       if (this.path.closed) {
-        item.out = undefined
+        item.out = null
       }
 
       this.path.points.push(item);
@@ -119,7 +158,7 @@ export default defineComponent({
       this.selectedPathIndex = this.paths.length - 1
       this.penMode = true
     },
-    onCreatePathDown(e) {
+    onCreatePathDown(e: PointerEvent) {
       // 新規作成
       if (!this.penMode) {
         return
@@ -127,8 +166,8 @@ export default defineComponent({
 
       let p = screenToSvg(
         { x: e.clientX, y: e.clientY },
-        this.$refs.canv,
-        this.$refs.canv
+        this.$refs.canv as SVGRectElement,
+        this.$refs.canv as SVGSVGElement
       );
       this.offset = { x: p.x, y: p.y };
       const item = this.createPoint(p)
@@ -136,25 +175,25 @@ export default defineComponent({
       this.selectedType = "out"
       this.selectedSegment = item;
     },
-    onPointerMove(e) {
+    onPointerMove(e: PointerEvent) {
       if (this.offset) {
         let p = screenToSvg(
           { x: e.clientX, y: e.clientY },
-          this.$refs.canv,
-          this.$refs.canv
+          this.$refs.canv as SVGRectElement,
+          this.$refs.canv as SVGSVGElement
         );
         for (let i of this.movingGroup) {
           i.x += p.x - this.offset.x;
           i.y += p.y - this.offset.y;
         }
         if (this.selectedSegment != this.selection && this.selectionMirror) {
-          if (!this.anchorChange && this.selectedSegment.mirror && this.selection) {
+          if (!this.anchorChange && this.selectedSegment?.mirror && this.selection) {
             this.selectionMirror.x =
               this.selectedSegment.x * 2 - this.selection.x;
             this.selectionMirror.y =
               this.selectedSegment.y * 2 - this.selection.y;
           }
-          if (this.anchorChange && !this.selectedSegment.mirror) {
+          if (this.anchorChange && this.selectedSegment && !this.selectedSegment?.mirror && this.selection) {
             this.selectionMirror.x =
               this.selectedSegment.x * 2 - this.selection.x;
             this.selectionMirror.y =
@@ -165,7 +204,7 @@ export default defineComponent({
         this.offset = { x: p.x, y: p.y };
       }
     },
-    selectPath(index) {
+    selectPath(index: number) {
       if (this.penMode) {
         // 描画中に他のパスがActiveになってしまわないようblock
         return
@@ -174,30 +213,33 @@ export default defineComponent({
     }
   },
   computed: {
-    path() {
+    path(): Path {
       return this.paths[this.selectedPathIndex]
     },
-    render() {
+    render(): string {
       return toSvg(this.path);
     },
-    thumbs() {
+    thumbs(): string[] {
       return this.paths.map(p => {
         return toSvg(p);
       });
     },
-    renders() {
+    renders(): string[] {
       return this.paths.map(toSvg)
     },
-    selectionIndex() {
+    selectionIndex(): number {
+      if (this.selectedSegment === null) {
+        return -1;
+      }
       return this.path.points.indexOf(this.selectedSegment);
     },
-    prev() {
+    prev(): Segment {
       return this.path.points[(this.selectionIndex - 1) % this.path.points.length];
     },
-    next() {
+    next(): Segment {
       return this.path.points[(this.selectionIndex + 1) % this.path.points.length];
     },
-    selectionMirror() {
+    selectionMirror(): Point | null {
       if (this.path.closed) {
         const start = this.path.points[0]
         const last = this.path.points[this.path.points.length - 1]
@@ -210,19 +252,30 @@ export default defineComponent({
       }
       switch (this.selectedType) {
         case "in":
-          return this.selectedSegment.out;
+          if(this.selectedSegment === null) {
+            return null
+          }
+          return this.selectedSegment?.out;
         case "out":
-          return this.selectedSegment.in;
+          if(this.selectedSegment === null) {
+            return null
+          }
+          return this.selectedSegment?.in;
       }
       return null
     },
-    movingGroup() {
-      const group = []
-      group.push(this.selection)
-      if (this.selection.in) {
+    movingGroup(): (Point | Segment)[] {
+      const group = [] as (Point | Segment)[]
+      if(this.selectedSegment === null) {
+        return group
+      }
+      if(this.selection){
+        group.push(this.selection)
+      }
+      if (isSegment(this.selection) && this.selection && this.selection.in) {
         group.push(this.selection.in)
       }
-      if (this.selection.out) {
+      if (isSegment(this.selection) && this.selection && this.selection.out) {
         group.push(this.selection.out)
       }
       if (this.path.closed) {
@@ -230,31 +283,35 @@ export default defineComponent({
         const last = this.path.points[this.path.points.length - 1]
         if (this.selection === start) {
           group.push(last)
-          group.push(last.in)
+          if(last.in){
+            group.push(last.in)
+          }
         }
         if (this.selection === last) {
           group.push(start)
-          group.push(start.out)
+          if(start.out){
+            group.push(start.out)
+          }
         }
       }
       return group
     }
   },
   mounted() {
-    keydownHandler = window.addEventListener("keydown", (ev) => {
-      if (ev.key === "Control") {
-        this.anchorChange = true
-      }
-    })
-    keyupHandler = window.addEventListener("keyup", (ev) => {
-      if (ev.key === "Control") {
-        this.anchorChange = false
-      }
-    })
+    // keydownHandler = window.addEventListener("keydown", (ev) => {
+    //   if (ev.key === "Control") {
+    //     this.anchorChange = true
+    //   }
+    // })
+    // keyupHandler = window.addEventListener("keyup", (ev) => {
+    //   if (ev.key === "Control") {
+    //     this.anchorChange = false
+    //   }
+    // })
   },
   beforeDestroy() {
-    window.removeEventListener("keydown", keydownHandler)
-    window.removeEventListener("keydown", keyupHandler)
+    // window.removeEventListener("keydown", keydownHandler)
+    // window.removeEventListener("keydown", keyupHandler)
   }
 })
 </script>
@@ -277,7 +334,7 @@ export default defineComponent({
           :class="{ 'selected': selection === i.in }"></circle>
       </g>
       <path :d="render" class="preview"></path>
-      <circle v-for="i in path.points" :cx="i.x" :cy="i.y" r="10" @pointerdown="onPointerDown($event, i, i)"
+      <circle v-for="i in path.points" :cx="i.x" :cy="i.y" r="10" @pointerdown="onPointerDown($event, i, i, '')"
         @pointermove="onPointerMove" @pointerup="onPointerUp" :class="{ 'selected': selection === i }"></circle>
     </g>
   </svg>
