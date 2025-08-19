@@ -3,7 +3,7 @@ import Editor from './components/Editor.vue'
 </script>
 
 <template>
-  <Editor msg="Hello Vue 3 + TypeScript + Vite" />
+  <Editor />
 </template>
 
 <style>
