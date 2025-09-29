@@ -336,7 +336,7 @@ export default defineComponent({
       <h1 class="app-title">Path Editor</h1>
       <div class="toolbar">
         <button class="tool-btn" :class="{ active: penMode }" @click="penMode = !penMode" title="Pen Mode">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 19l7-7 3 3-7 7-3-3z"/>
             <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
             <path d="M2 2l7.586 7.586"/>
@@ -353,9 +353,10 @@ export default defineComponent({
           @pointerup="onPointerUp" tabindex="0">
           <defs>
             <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e0e0e0" stroke-width="0.5"/>
+              <circle cx="10" cy="10" r="1" fill="#b0b0b0"/>
             </pattern>
           </defs>
+          <rect width="400" height="400" fill="white" />
           <rect width="400" height="400" fill="url(#grid)" />
           
           <path v-for="(render, i) in renders" :d="render" class="rendered-path" @click="selectPath(i)"></path>
@@ -363,18 +364,33 @@ export default defineComponent({
           <g v-if="path">
             <g v-for="(i, idx) in path.points">
               <line v-if="i.out" :x1="i.x" :y1="i.y" :x2="i.out.x" :y2="i.out.y" class="handle-line"></line>
-              <circle @pointerdown="onPointerDown($event, i.out, i, 'out')" @pointermove="onPointerMove"
-                @pointerup="onPointerUp" v-if="i.out" :cx="i.out.x" :cy="i.out.y" r="6"
-                class="handle-point" :class="{ 'selected': selection === i.out }"></circle>
+              <g v-if="i.out">
+                <circle :cx="i.out.x" :cy="i.out.y" r="6" fill="transparent" stroke="none"
+                  @pointerdown="onPointerDown($event, i.out, i, 'out')" @pointermove="onPointerMove"
+                  @pointerup="onPointerUp" style="cursor: move;"></circle>
+                <circle :cx="i.out.x" :cy="i.out.y" r="3"
+                  class="handle-point" :class="{ 'selected': selection === i.out }"
+                  pointer-events="none"></circle>
+              </g>
               <line v-if="i.in" :x1="i.x" :y1="i.y" :x2="i.in.x" :y2="i.in.y" class="handle-line"></line>
-              <circle @pointerdown="onPointerDown($event, i.in, i, 'in')" @pointermove="onPointerMove"
-                @pointerup="onPointerUp" v-if="i.in" :cx="i.in.x" :cy="i.in.y" r="6"
-                class="handle-point" :class="{ 'selected': selection === i.in }"></circle>
+              <g v-if="i.in">
+                <circle :cx="i.in.x" :cy="i.in.y" r="6" fill="transparent" stroke="none"
+                  @pointerdown="onPointerDown($event, i.in, i, 'in')" @pointermove="onPointerMove"
+                  @pointerup="onPointerUp" style="cursor: move;"></circle>
+                <circle :cx="i.in.x" :cy="i.in.y" r="3"
+                  class="handle-point" :class="{ 'selected': selection === i.in }"
+                  pointer-events="none"></circle>
+              </g>
             </g>
             <path :d="render" class="preview-path"></path>
-            <circle v-for="i in path.points" :cx="i.x" :cy="i.y" r="8" 
-              @pointerdown="onPointerDown($event, i, i, '')" @pointermove="onPointerMove" 
-              @pointerup="onPointerUp" class="anchor-point" :class="{ 'selected': selection === i }"></circle>
+            <g v-for="i in path.points">
+              <circle :cx="i.x" :cy="i.y" r="8" fill="transparent" stroke="none"
+                @pointerdown="onPointerDown($event, i, i, '')" @pointermove="onPointerMove"
+                @pointerup="onPointerUp" style="cursor: move;"></circle>
+              <circle :cx="i.x" :cy="i.y" r="4"
+                class="anchor-point" :class="{ 'selected': selection === i }"
+                pointer-events="none"></circle>
+            </g>
           </g>
         </svg>
       </div>
@@ -392,7 +408,7 @@ export default defineComponent({
               <span class="layer-name">Path {{ i + 1 }}</span>
             </div>
             <button class="add-layer-btn" @click="addPath">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
@@ -425,24 +441,33 @@ export default defineComponent({
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f5f7;
+  background: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  position: relative;
 }
 
 .header {
-  background: white;
-  border-bottom: 1px solid #e1e1e3;
-  padding: 1rem 1.5rem;
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 0.5rem 0.75rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  gap: 1rem;
+  z-index: 100;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .app-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1a1a1a;
+  font-size: 0.625rem;
+  font-weight: 400;
+  color: #666;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .toolbar {
@@ -451,23 +476,30 @@ export default defineComponent({
 }
 
 .tool-btn {
-  background: white;
-  border: 1px solid #d1d1d6;
-  border-radius: 8px;
-  padding: 0.5rem;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+  padding: 0.25rem;
   cursor: pointer;
-  transition: all 0.2s;
-  color: #6e6e73;
+  transition: all 0.15s;
+  color: #666;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tool-btn:hover {
-  background: #f5f5f7;
+  background: rgba(0, 0, 0, 0.05);
+  border-color: #000000;
+  color: #000000;
 }
 
 .tool-btn.active {
-  background: #007aff;
+  background: #000000;
   color: white;
-  border-color: #007aff;
+  border-color: #000000;
 }
 
 .main-content {
@@ -481,7 +513,8 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 1rem;
+  background: #f8f8f8;
 }
 
 .drawing-canvas {
@@ -489,83 +522,79 @@ export default defineComponent({
   max-width: 600px;
   height: auto;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #000000;
   cursor: crosshair;
 }
 
 .rendered-path {
-  stroke: #2c2c2e;
-  stroke-width: 2;
-  fill: rgba(0, 122, 255, 0.1);
+  stroke: #000000;
+  stroke-width: 1;
+  fill: rgba(0, 0, 0, 0.05);
   cursor: pointer;
-  transition: fill 0.2s;
+  transition: fill 0.15s;
 }
 
 .rendered-path:hover {
-  fill: rgba(0, 122, 255, 0.2);
+  fill: rgba(0, 0, 0, 0.1);
 }
 
 .preview-path {
-  stroke: #007aff;
-  stroke-width: 2;
+  stroke: #000000;
+  stroke-width: 1;
   fill: none;
 }
 
 .handle-line {
-  stroke: #007aff;
-  stroke-width: 1;
-  opacity: 0.5;
+  stroke: #000000;
+  stroke-width: 0.5;
+  opacity: 0.3;
 }
 
 .handle-point {
   fill: white;
-  stroke: #007aff;
-  stroke-width: 2;
+  stroke: #000000;
+  stroke-width: 1;
   cursor: move;
 }
 
 .handle-point.selected {
-  fill: #007aff;
+  fill: #000000;
 }
 
 .anchor-point {
   fill: white;
-  stroke: #007aff;
-  stroke-width: 2;
+  stroke: #000000;
+  stroke-width: 1;
   cursor: move;
 }
 
 .anchor-point.selected {
-  fill: #007aff;
-  stroke-width: 3;
+  fill: #000000;
+  stroke-width: 1.5;
 }
 
 .sidebar {
-  width: 320px;
+  width: 280px;
   background: white;
-  border-left: 1px solid #e1e1e3;
+  border-left: 1px solid #000000;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 1.5rem;
+  padding: 1.5rem;
   overflow-y: auto;
 }
 
 .panel {
   background: white;
-  border-radius: 12px;
-  padding: 1rem;
-  border: 1px solid #e1e1e3;
 }
 
 .panel-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #6e6e73;
+  font-size: 0.625rem;
+  font-weight: 400;
+  color: #000000;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 1rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.75rem;
 }
 
 .layer-list {
@@ -578,37 +607,36 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem;
-  border-radius: 8px;
+  padding: 0.5rem 0;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.15s;
+  border-bottom: 1px solid transparent;
 }
 
 .layer-item:hover {
-  background: #f5f5f7;
+  border-bottom-color: #e0e0e0;
 }
 
 .layer-item.active {
-  background: #e8f2ff;
+  border-bottom-color: #000000;
 }
 
 .layer-thumb {
-  width: 40px;
-  height: 40px;
-  border: 1px solid #e1e1e3;
-  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #000000;
   background: white;
 }
 
 .layer-path {
-  stroke: #2c2c2e;
-  stroke-width: 2;
-  fill: rgba(0, 0, 0, 0.1);
+  stroke: #000000;
+  stroke-width: 1;
+  fill: rgba(0, 0, 0, 0.05);
 }
 
 .layer-name {
-  font-size: 0.875rem;
-  color: #2c2c2e;
+  font-size: 0.75rem;
+  color: #000000;
 }
 
 .add-layer-btn {
@@ -617,49 +645,48 @@ export default defineComponent({
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.75rem;
-  background: #007aff;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 0.5rem;
+  background: white;
+  color: #000000;
+  border: 1px solid #000000;
+  font-size: 0.75rem;
+  font-weight: 400;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.15s;
+  margin-top: 0.5rem;
 }
 
 .add-layer-btn:hover {
-  background: #0051d5;
+  background: #000000;
+  color: white;
 }
 
 .svg-output {
   width: 100%;
-  height: 120px;
-  padding: 0.75rem;
-  border: 1px solid #e1e1e3;
-  border-radius: 8px;
+  height: 100px;
+  padding: 0.5rem;
+  border: 1px solid #000000;
   font-family: 'Monaco', 'Menlo', monospace;
-  font-size: 0.75rem;
+  font-size: 0.625rem;
   resize: vertical;
-  background: #f5f5f7;
+  background: #fafafa;
 }
 
 .copy-btn {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.5rem;
   margin-top: 0.5rem;
   background: white;
-  color: #007aff;
-  border: 1px solid #007aff;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  color: #000000;
+  border: 1px solid #000000;
+  font-size: 0.75rem;
+  font-weight: 400;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
 }
 
 .copy-btn:hover {
-  background: #007aff;
+  background: #000000;
   color: white;
 }
 
