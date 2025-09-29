@@ -35,8 +35,8 @@ function screenToSvg(point: Point, el: SVGGraphicsElement, svg: SVGSVGElement) {
   return pt;
 }
 
-let keydownHandler: KeyboardEvent | null = null;
-let keyupHandler: KeyboardEvent | null = null;
+let keydownHandler: ((ev: KeyboardEvent) => void) | null = null;
+let keyupHandler: ((ev: KeyboardEvent) => void) | null = null;
 
 interface Point {
   x: number;
@@ -303,20 +303,29 @@ export default defineComponent({
     }
   },
   mounted() {
-    // keydownHandler = window.addEventListener("keydown", (ev) => {
-    //   if (ev.key === "Control") {
-    //     this.anchorChange = true
-    //   }
-    // })
-    // keyupHandler = window.addEventListener("keyup", (ev) => {
-    //   if (ev.key === "Control") {
-    //     this.anchorChange = false
-    //   }
-    // })
+    keydownHandler = (ev: KeyboardEvent) => {
+      // macOSではCmd(Meta)キー、その他ではCtrlキーを使用
+      if (ev.metaKey || ev.ctrlKey) {
+        this.anchorChange = true
+      }
+    }
+    keyupHandler = (ev: KeyboardEvent) => {
+      // macOSではCmd(Meta)キー、その他ではCtrlキーを使用
+      if (!ev.metaKey && !ev.ctrlKey) {
+        this.anchorChange = false
+      }
+    }
+    window.addEventListener("keydown", keydownHandler)
+    window.addEventListener("keyup", keyupHandler)
   },
-  beforeDestroy() {
-    // window.removeEventListener("keydown", keydownHandler)
-    // window.removeEventListener("keydown", keyupHandler)
+  beforeUnmount() {
+    // Vue 3では beforeDestroy ではなく beforeUnmount を使用
+    if (keydownHandler) {
+      window.removeEventListener("keydown", keydownHandler)
+    }
+    if (keyupHandler) {
+      window.removeEventListener("keyup", keyupHandler)
+    }
   }
 })
 </script>
