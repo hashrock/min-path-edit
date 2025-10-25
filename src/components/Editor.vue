@@ -94,9 +94,21 @@ export default defineComponent({
       anchorChange: false,
       pathClosed: false,
       penMode: true,
+      snapToGrid: true,
+      gridSize: 20,
     };
   },
   methods: {
+    snapPoint(point: Point): Point {
+      if (!this.snapToGrid) {
+        return point;
+      }
+      const halfGrid = this.gridSize / 2;
+      return {
+        x: Math.round(point.x / halfGrid) * halfGrid,
+        y: Math.round(point.y / halfGrid) * halfGrid
+      };
+    },
     copyToClipboard() {
       navigator.clipboard.writeText(this.render).then(() => {
         console.log('Copied to clipboard');
@@ -169,11 +181,12 @@ export default defineComponent({
         return
       }
 
-      let p = screenToSvg(
+      let svgPoint = screenToSvg(
         { x: e.clientX, y: e.clientY },
         this.$refs.canv as SVGRectElement,
         this.$refs.canv as SVGSVGElement
       );
+      let p = this.snapPoint({ x: svgPoint.x, y: svgPoint.y });
       this.offset = { x: p.x, y: p.y };
       const item = this.createPoint(p)
       this.selection = item.out;
@@ -182,11 +195,12 @@ export default defineComponent({
     },
     onPointerMove(e: PointerEvent) {
       if (this.offset) {
-        let p = screenToSvg(
+        let svgPoint = screenToSvg(
           { x: e.clientX, y: e.clientY },
           this.$refs.canv as SVGRectElement,
           this.$refs.canv as SVGSVGElement
         );
+        let p = this.snapPoint({ x: svgPoint.x, y: svgPoint.y });
         for (let i of this.movingGroup) {
           i.x += p.x - this.offset.x;
           i.y += p.y - this.offset.y;
@@ -341,6 +355,14 @@ export default defineComponent({
             <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
             <path d="M2 2l7.586 7.586"/>
             <circle cx="11" cy="11" r="2"/>
+          </svg>
+        </button>
+        <button class="tool-btn" :class="{ active: snapToGrid }" @click="snapToGrid = !snapToGrid" title="Snap to Grid">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
           </svg>
         </button>
       </div>
