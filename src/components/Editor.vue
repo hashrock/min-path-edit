@@ -2,10 +2,15 @@
 import { defineComponent } from 'vue'
 
 function toSvg(path: Path) {
-  if (!path) {
+  if (!path || path.points.length === 0) {
     return ""
   }
-  let result = [];
+  if (path.points.length === 1) {
+    const point = path.points[0]
+    return `M ${point.x} ${point.y}`
+  }
+
+  const result = [] as string[];
   for (let i = 0; i < path.points.length - 1; i++) {
     const seg = path.points[i];
     const next = path.points[i + 1];
@@ -20,6 +25,19 @@ function toSvg(path: Path) {
       ].join(" ")
     );
   }
+
+  if (path.closed) {
+    const last = path.points[path.points.length - 1]
+    const first = path.points[0]
+    result.push(
+      [
+        `C ${last.out ? last.out.x : last.x}`,
+        `${last.out ? last.out.y : last.y}, ${first.in ? first.in.x : first.x}`,
+        `${first.in ? first.in.y : first.y}, ${first.x} ${first.y}`
+      ].join(" ")
+    )
+  }
+
   return result.join(" ") + (path.closed ? " Z" : "");
 }
 function screenToSvg(point: Point, el: SVGGraphicsElement, svg: SVGSVGElement) {
@@ -46,7 +64,7 @@ interface Point {
 interface Segment extends Point {
   out: Point | null;
   in: Point | null;
-  mirror: boolean | null
+  mirror: boolean
 }
 
 interface Path {
@@ -63,17 +81,11 @@ type UnknownObject<T extends object> = {
 };
 
 function isSegment(obj: unknown): obj is Segment {
-  if (typeof obj !== "object") {
+  if (typeof obj !== "object" || obj === null) {
     return false;
   }
-  if (obj === null) {
-    return false;
-  }
-  const { out } = obj as UnknownObject<Segment>;
-  if (typeof out !== "object") {
-    return false;
-  }
-  return true
+  const maybeSegment = obj as UnknownObject<Segment>;
+  return "mirror" in maybeSegment && "in" in maybeSegment && "out" in maybeSegment
 }
 
 export default defineComponent({
@@ -92,7 +104,8 @@ export default defineComponent({
       selectedType: "",
       offset: null as Offset | null,
       anchorChange: false,
-      pathClosed: false,
+      anchorChangeUsed: false,
+      closePathOnPointerUp: false,
       penMode: true,
       snapToGrid: true,
       gridSize: 20,
@@ -116,8 +129,13 @@ export default defineComponent({
     },
     onPointerUp(e: PointerEvent) {
       this.offset = null;
-      if (this.anchorChange && this.selectedSegment) {
+      if (this.anchorChangeUsed && this.selectedSegment) {
         this.selectedSegment.mirror = !this.selectedSegment.mirror;
+      }
+      this.anchorChangeUsed = false
+      if (this.closePathOnPointerUp) {
+        this.penMode = false
+        this.closePathOnPointerUp = false
       }
     },
     onPointerDown(e: PointerEvent, item: Point | null, root: Segment, type: "out" | "in" | "") {
@@ -132,14 +150,26 @@ export default defineComponent({
       this.selection = item;
       this.selectedSegment = root;
       this.selectedType = type
+      this.anchorChangeUsed = false
 
-      if (item === this.path.points[0] && this.penMode) {
+      if (item === this.path.points[0] && this.penMode && this.path.points.length > 1) {
         this.path.closed = true
-        const i = this.createPoint(this.path.points[0])
+        if (this.path.points[0].in === null) {
+          this.path.points[0].in = {
+            x: this.path.points[0].x,
+            y: this.path.points[0].y
+          }
+        }
+        if (this.path.points[this.path.points.length - 1].out === null) {
+          this.path.points[this.path.points.length - 1].out = {
+            x: this.path.points[this.path.points.length - 1].x,
+            y: this.path.points[this.path.points.length - 1].y
+          }
+        }
         this.selection = this.path.points[0].out
         this.selectedType = "out"
-        this.selectedSegment = i
-        this.penMode = false
+        this.selectedSegment = this.path.points[0]
+        this.closePathOnPointerUp = true
         return
       }
     },
@@ -159,9 +189,6 @@ export default defineComponent({
       };
       if (this.path.points.length === 0) {
         item.in = null
-      }
-      if (this.path.closed) {
-        item.out = null
       }
 
       this.path.points.push(item);
@@ -205,6 +232,9 @@ export default defineComponent({
           i.x += p.x - this.offset.x;
           i.y += p.y - this.offset.y;
         }
+        if (this.anchorChange) {
+          this.anchorChangeUsed = true
+        }
         if (this.selectedSegment != this.selection && this.selectionMirror) {
           if (!this.anchorChange && this.selectedSegment?.mirror && this.selection) {
             this.selectionMirror.x =
@@ -229,6 +259,12 @@ export default defineComponent({
         return
       }
       this.selectedPathIndex = index
+    },
+    togglePenMode() {
+      if (!this.path.closed) {
+        return
+      }
+      this.penMode = !this.penMode
     }
   },
   computed: {
@@ -259,16 +295,6 @@ export default defineComponent({
       return this.path.points[(this.selectionIndex + 1) % this.path.points.length];
     },
     selectionMirror(): Point | null {
-      if (this.path.closed) {
-        const start = this.path.points[0]
-        const last = this.path.points[this.path.points.length - 1]
-        if (this.selectedSegment === start && this.selectedType === "out") {
-          return last.in
-        }
-        if (this.selectedSegment === last && this.selectedType === "in") {
-          return start.out
-        }
-      }
       switch (this.selectedType) {
         case "in":
           if (this.selectedSegment === null) {
@@ -296,22 +322,6 @@ export default defineComponent({
       }
       if (isSegment(this.selection) && this.selection && this.selection.out) {
         group.push(this.selection.out)
-      }
-      if (this.path.closed) {
-        const start = this.path.points[0]
-        const last = this.path.points[this.path.points.length - 1]
-        if (this.selection === start) {
-          group.push(last)
-          if (last.in) {
-            group.push(last.in)
-          }
-        }
-        if (this.selection === last) {
-          group.push(start)
-          if (start.out) {
-            group.push(start.out)
-          }
-        }
       }
       return group
     }
@@ -349,7 +359,7 @@ export default defineComponent({
     <header class="header">
       <h1 class="app-title">Path Editor</h1>
       <div class="toolbar">
-        <button class="tool-btn" :class="{ active: penMode }" @click="penMode = !penMode" title="Pen Mode">
+        <button class="tool-btn" :class="{ active: penMode }" :disabled="!path.closed" @click="togglePenMode" title="Pen Mode">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 19l7-7 3 3-7 7-3-3z"/>
             <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
@@ -423,7 +433,7 @@ export default defineComponent({
           <div class="layer-list">
             <div v-for="(render, i) in thumbs" :key="i" 
               class="layer-item" :class="{ active: i === selectedPathIndex }"
-              @click="selectedPathIndex = i">
+              @click="selectPath(i)">
               <svg viewBox="0 0 400 400" class="layer-thumb">
                 <path :d="render" class="layer-path"></path>
               </svg>
@@ -441,7 +451,7 @@ export default defineComponent({
 
         <div class="panel">
           <h3 class="panel-title">SVG Output</h3>
-          <textarea v-model="render" class="svg-output" readonly></textarea>
+          <textarea :value="render" class="svg-output" readonly></textarea>
           <button class="copy-btn" @click="copyToClipboard">
             Copy SVG
           </button>

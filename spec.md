@@ -23,8 +23,9 @@ interface Segment extends Point {
 }
 ```
 
-- 最初のポイント: `in = null`（後方ハンドルなし）
-- パスが閉じた時の最終ポイント: `out = null`（前方ハンドルなし）
+- `in` / `out` はアンカーポイントからの相対座標ではなく、SVG 上の絶対座標
+- 開いたパス（`closed = false`）では、最初のポイントは `in = null`、最後のポイントは `out = null`
+- 閉じたパス（`closed = true`）では、始点と終点も通常のセグメントとして扱い、`in` / `out` を保持できる
 - `mirror = true` がデフォルト
 
 ### Path
@@ -41,10 +42,15 @@ interface Path {
 `toSvg()` 関数がパスデータを SVG パス文字列に変換する。
 
 - `M x y` — 始点への移動
-- `C cx1 cy1, cx2 cy2, x y` — 三次ベジェ曲線（各セグメント間）
+- `C cx1 cy1, cx2 cy2, x y` — 三次ベジェ曲線（各セグメント間、および閉路の最後→最初）
 - `Z` — パスを閉じる（`closed = true` の場合）
 
 ハンドルが `null` の場合はアンカーポイント座標がフォールバックとして使われる。
+
+- `points.length === 0` の場合は空文字列 `""` を返す
+- `points.length === 1` の場合は `M x y` のみを返す
+- `closed = false` の場合は `points[i] -> points[i + 1]` を順に `C` で出力する
+- `closed = true` の場合は上記に加えて `last -> first` を `C` で出力し、最後に `Z` を付与する
 
 ## キャンバス
 
@@ -64,7 +70,8 @@ interface Path {
 | `selectedSegment` | `Segment \| null` | `null` | 選択中のアンカーポイント |
 | `selectedType` | `"out" \| "in" \| ""` | `""` | 選択対象の種別 |
 | `offset` | `Offset \| null` | `null` | ドラッグのオフセット座標 |
-| `anchorChange` | `boolean` | `false` | Ctrl/Cmd キー押下中 |
+| `anchorChange` | `boolean` | `false` | Ctrl/Cmd/Z によりミラーモード反転が要求されているか |
+| `anchorChangeUsed` | `boolean` | `false` | 現在のドラッグ中に一度でも anchorChange が使われたか |
 | `snapToGrid` | `boolean` | `true` | グリッドスナップ有効 |
 | `gridSize` | `number` | `20` | グリッドサイズ（px） |
 
@@ -81,7 +88,7 @@ penMode: true
 
 penMode: false（編集モード）
   │
-  ├─ ツールバーの Pen ボタン → penMode: true（※現在のパスが閉じている場合のみ意味あり）
+  ├─ ツールバーの Pen ボタン → アクティブパスが閉じている場合のみ penMode: true
   │
   └─ Add Path ボタン → 新パス追加 → penMode: true
 ```
@@ -92,16 +99,19 @@ penMode: false（編集モード）
 pointerdown
   │  offset を記録、setPointerCapture
   │  selection / selectedSegment / selectedType を設定
+  │  anchorChangeUsed = false
   ▼
 pointermove（繰り返し）
   │  スクリーン座標 → SVG座標変換
   │  グリッドスナップ適用
   │  movingGroup 内の全ポイントを移動
   │  ミラーハンドルの反映
+  │  anchorChange が有効なら anchorChangeUsed = true
   ▼
 pointerup
   │  offset = null（ドラッグ終了）
-  │  anchorChange が true なら mirror を反転
+  │  anchorChangeUsed が true なら mirror を反転
+  │  anchorChangeUsed = false
   ▼
 [待機状態]
 ```
@@ -121,7 +131,9 @@ pointerup
 - **`mirror = true` のセグメント**: 通常はハンドルが対称に連動する。Ctrl/Cmd を押すとミラーを**解除**し、片方だけ動かせる
 - **`mirror = false` のセグメント**: 通常はハンドルが独立。Ctrl/Cmd を押すとミラーを**有効化**し、対称に連動する
 
-pointerup 時に `anchorChange = true` であれば、`selectedSegment.mirror` が反転（トグル）される。
+- ハンドルをドラッグしている間に一度でも `anchorChange = true` になった場合、`anchorChangeUsed = true` とする
+- `pointerup` 時に `anchorChangeUsed = true` であれば、`selectedSegment.mirror` を反転（トグル）する
+- `pointerup` の瞬間にキーが押されているかどうかではなく、そのドラッグ中に一度でも反転操作を使ったかで確定する
 
 ## マウス操作
 
@@ -129,8 +141,8 @@ pointerup 時に `anchorChange = true` であれば、`selectedSegment.mirror` �
 
 | 操作 | 動作 |
 |---|---|
-| キャンバスをクリック | 新しいアンカーポイントを作成。作成直後に `out` ハンドルが選択状態になり、ドラッグでハンドル位置を調整可能 |
-| 最初のアンカーをクリック | パスを閉じる（`closed = true`）。最初のアンカーの `out` ハンドルをドラッグで調整可能。ペンモード終了 |
+| キャンバスを `pointerdown` | 新しいアンカーポイントを作成。作成直後にその `out` ハンドルが選択状態になり、同じポインタ操作を継続してドラッグ調整できる |
+| 最初のアンカーを `pointerdown` | パスを閉じる（`closed = true`）。最初のアンカーの `out` ハンドルを選択状態にし、同じポインタ操作を継続してドラッグ調整できる。`pointerup` 後にペンモード終了 |
 
 ### 編集モード（`penMode: false`）
 
@@ -143,14 +155,14 @@ pointerup 時に `anchorChange = true` であれば、`selectedSegment.mirror` �
 | レイヤーサムネイルをクリック | アクティブレイヤーを切り替え（ペンモード中は無効） |
 | レンダリングされたパスをクリック | 対応するレイヤーを選択 |
 
-### 閉じたパスの特殊挙動
+### 閉じたパスの挙動
 
-閉じたパスでは始点と終点が連結される:
+閉じたパスでも、各アンカーは独立したセグメントとして扱う:
 
-- **始点をドラッグ**: 終点とその `in` ハンドルも一緒に移動
-- **終点をドラッグ**: 始点とその `out` ハンドルも一緒に移動
-- **始点の `out` ハンドルのミラー**: 終点の `in` ハンドル
-- **終点の `in` ハンドルのミラー**: 始点の `out` ハンドル
+- **アンカーをドラッグ**: そのアンカー本体と、自身の `in` / `out` ハンドルが一体で移動する
+- **`out` ハンドルのミラー**: 同じアンカーの `in` ハンドル
+- **`in` ハンドルのミラー**: 同じアンカーの `out` ハンドル
+- 閉じていることによって、別アンカーのハンドル同士がミラー関係になることはない
 
 ## movingGroup（連動移動グループ）
 
@@ -160,8 +172,6 @@ pointerup 時に `anchorChange = true` であれば、`selectedSegment.mirror` �
 |---|---|
 | アンカーポイント（Segment） | アンカー本体 + `in` ハンドル + `out` ハンドル |
 | ハンドル（Point） | そのハンドルのみ |
-| 閉じたパスの始点 | 始点 + 終点 + 終点の `in` |
-| 閉じたパスの終点 | 終点 + 始点 + 始点の `out` |
 
 ## グリッドスナップ
 
@@ -185,7 +195,7 @@ snapPoint(point: Point): Point {
 
 | ボタン | 機能 |
 |---|---|
-| Pen Mode | ペンモードのオン/オフ切り替え |
+| Pen Mode | アクティブパスが閉じている時のみペンモードに入る。開いたパスでは disabled |
 | Snap to Grid | グリッドスナップのオン/オフ切り替え |
 
 ### サイドバー（右側）
