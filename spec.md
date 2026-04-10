@@ -1,6 +1,6 @@
 # min-path-edit 仕様書
 
-SVG ベジェ曲線パスエディタ。Vue 3 + TypeScript で構築。
+SVG ベジェ曲線パスエディタ。React + TypeScript で構築。
 
 ## データモデル
 
