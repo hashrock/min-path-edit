@@ -8,6 +8,7 @@ import {
 } from 'react'
 import type { Path, Point, Segment } from '../types'
 import { screenToSvg, toSvg } from '../svg'
+import { hitTestPaths, splitPathAtSegment } from '../pathSplit'
 import './Editor.css'
 
 type HandleType = 'anchor' | 'in' | 'out'
@@ -29,6 +30,7 @@ interface DragState {
 
 const GRID_SIZE = 20
 const HALF_GRID = GRID_SIZE / 2
+const SCISSORS_HIT_THRESHOLD = 10
 
 function createEmptyPath(): Path {
   return { points: [], closed: false }
@@ -38,6 +40,7 @@ export default function Editor() {
   const [paths, setPaths] = useState<Path[]>(() => [createEmptyPath()])
   const [selectedPathIndex, setSelectedPathIndex] = useState(0)
   const [penMode, setPenMode] = useState(true)
+  const [scissorsMode, setScissorsMode] = useState(false)
   const [snapToGrid, setSnapToGrid] = useState(true)
   const [selection, setSelection] = useState<Selection | null>(null)
 
@@ -85,9 +88,25 @@ export default function Editor() {
   }, [])
 
   const onCanvasPointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
-    if (!penMode) return
     const svgPoint = toSvgPoint(e.clientX, e.clientY)
     if (!svgPoint) return
+
+    if (scissorsMode) {
+      const hit = hitTestPaths(paths, svgPoint, SCISSORS_HIT_THRESHOLD)
+      if (!hit) return
+      const target = paths[hit.pathIndex]
+      const result = splitPathAtSegment(target, hit.segmentIndex, hit.t)
+      setPaths((prev) => {
+        const next = [...prev]
+        next[hit.pathIndex] = result
+        return next
+      })
+      setSelectedPathIndex(hit.pathIndex)
+      setSelection(null)
+      return
+    }
+
+    if (!penMode) return
     const p = snapPoint(svgPoint)
 
     const path = paths[selectedPathIndex]
@@ -299,18 +318,34 @@ export default function Editor() {
     setPaths((prev) => [...prev, createEmptyPath()])
     setSelectedPathIndex(paths.length)
     setPenMode(true)
+    setScissorsMode(false)
     setSelection(null)
   }
 
   const selectPath = (index: number) => {
-    if (penMode) return
+    if (penMode || scissorsMode) return
     setSelectedPathIndex(index)
     setSelection(null)
   }
 
   const togglePenMode = () => {
     if (!currentPath.closed) return
-    setPenMode((v) => !v)
+    setPenMode((v) => {
+      const next = !v
+      if (next) setScissorsMode(false)
+      return next
+    })
+  }
+
+  const toggleScissorsMode = () => {
+    setScissorsMode((v) => {
+      const next = !v
+      if (next) {
+        setPenMode(false)
+        setSelection(null)
+      }
+      return next
+    })
   }
 
   const render = useMemo(() => toSvg(currentPath), [currentPath])
@@ -354,6 +389,20 @@ export default function Editor() {
           </button>
           <button
             type="button"
+            className={`tool-btn ${scissorsMode ? 'active' : ''}`}
+            onClick={toggleScissorsMode}
+            title="Scissors"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <circle cx="6" cy="6" r="3" />
+              <circle cx="6" cy="18" r="3" />
+              <line x1="20" y1="4" x2="8.12" y2="15.88" />
+              <line x1="14.47" y1="14.48" x2="20" y2="20" />
+              <line x1="8.12" y1="8.12" x2="12" y2="12" />
+            </svg>
+          </button>
+          <button
+            type="button"
             className={`tool-btn ${snapToGrid ? 'active' : ''}`}
             onClick={() => setSnapToGrid((v) => !v)}
             title="Snap to Grid"
@@ -372,7 +421,7 @@ export default function Editor() {
         <div className="canvas-section">
           <svg
             ref={svgRef}
-            className="drawing-canvas"
+            className={`drawing-canvas ${scissorsMode ? 'scissors-mode' : ''}`}
             viewBox="0 0 400 400"
             tabIndex={0}
             onPointerDown={onCanvasPointerDown}
@@ -397,6 +446,7 @@ export default function Editor() {
               />
             ))}
 
+            {!scissorsMode && (
             <g>
               {currentPath.points.map((pt, idx) => (
                 <g key={`handle-${idx}`}>
@@ -478,6 +528,7 @@ export default function Editor() {
                 </g>
               ))}
             </g>
+            )}
           </svg>
         </div>
 

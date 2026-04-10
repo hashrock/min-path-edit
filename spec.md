@@ -196,6 +196,7 @@ snapPoint(point: Point): Point {
 | ボタン | 機能 |
 |---|---|
 | Pen Mode | アクティブパスが閉じている時のみペンモードに入る。開いたパスでは disabled |
+| Scissors | ハサミツールのオン/オフ。有効化するとペンモードは自動的にオフ |
 | Snap to Grid | グリッドスナップのオン/オフ切り替え |
 
 ### サイドバー（右側）
@@ -215,3 +216,72 @@ snapPoint(point: Point): Point {
 ## 座標変換
 
 `screenToSvg()`: スクリーン座標（`clientX`, `clientY`）を SVG viewBox 座標に変換する。`SVGGraphicsElement.getScreenCTM()` の逆行列を使用。
+
+## ハサミツール（Scissors Tool）
+
+曲線を指定位置で分割するツール。
+
+### 状態
+
+| 変数 | 型 | 初期値 | 説明 |
+|---|---|---|---|
+| `scissorsMode` | `boolean` | `false` | ハサミモード有効 |
+
+- `scissorsMode` と `penMode` は相互排他。一方が `true` のときもう一方は強制的に `false`
+- ハサミモード有効時は全パスのハンドル・アンカーを非表示にする
+- ハサミモード有効時はレイヤー切り替えとレンダリング済みパスのクリック選択は無効化される
+
+### 操作
+
+| 操作 | 動作 |
+|---|---|
+| ツールバーのハサミボタン | `scissorsMode` をトグル。有効化時に `penMode = false` かつ `selection = null` |
+| キャンバスクリック（`pointerdown`） | すべてのパス上で最も近い曲線点を探索し、しきい値以内にヒットすれば分割する |
+
+ヒット判定のしきい値は SVG 座標で `10`。
+
+### 分割アルゴリズム
+
+クリック位置に最も近いセグメント（`points[i]` と `points[i+1]` の間の三次ベジェ）とパラメータ `t` を、曲線上を 500 点サンプリングして求める。
+
+求めた `t` を用いて De Casteljau のアルゴリズムで三次ベジェを分割する:
+
+```
+P0 (anchor) — P1 (out)
+                 \
+                  Q0 — Q1 — Q2
+                        \   /
+                         R0 R1
+                          \ /
+                           S0   ← 分割点（新しいアンカー位置）
+                          / \
+                         R1 — R1
+                        /   \
+            P2 (in) — P3 (anchor)
+```
+
+- 左側サブ曲線: `P0 → Q0 → R0 → S0`
+- 右側サブ曲線: `S0 → R1 → Q2 → P3`
+
+ここで `Q_i = lerp(P_i, P_{i+1}, t)`、`R_0 = lerp(Q_0, Q_1, t)`、`R_1 = lerp(Q_1, Q_2, t)`、`S_0 = lerp(R_0, R_1, t)`。
+
+### パスへの反映
+
+ハサミは**パスを分離しない**。分割点に新しいアンカーを 1 つ挿入するだけで、パスは連結したままの単一 Path として保持される（`closed` 状態も変更しない）。
+
+対象セグメント `startIdx → endIdx`（`endIdx = (startIdx + 1) mod n`）に対して:
+
+- `points[startIdx].out` を `Q0` に更新
+- `points[endIdx].in` を `Q2` に更新
+- 新しいアンカー `{ x: S0.x, y: S0.y, in: R0, out: R1, mirror: false }` を `startIdx` と `endIdx` の間に挿入
+  - 通常セグメント: `points.splice(startIdx + 1, 0, newAnchor)`
+  - 閉じたパスの閉路セグメント（`startIdx = n - 1`, `endIdx = 0`）: 配列の末尾に追加（巡回的に `points[n-1]` と `points[0]` の間に相当する）
+
+挿入結果として Path の `points.length` は 1 増える。新しいアンカーは `mirror = false`（De Casteljau が生成するハンドルは一般に対称ではないため）。
+
+### 分割後の状態
+
+- 対象 Path は更新されたものに置き換えられる（`paths[pathIndex] = next`）
+- `selectedPathIndex` は対象 Path のまま変化しない
+- `selection` は `null` にクリアされる
+- `scissorsMode` は維持されるので連続して分割操作を続けられる

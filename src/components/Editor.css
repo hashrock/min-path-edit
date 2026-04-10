@@ -105,6 +105,10 @@
   touch-action: none;
 }
 
+.drawing-canvas.scissors-mode {
+  cursor: pointer;
+}
+
 .rendered-path {
   stroke: #000000;
   stroke-width: 1;
